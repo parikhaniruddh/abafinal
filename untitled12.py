@@ -240,6 +240,11 @@ cross_val_score(lr,X_test,y_test,cv=5)
 import pickle
 filename='car_price_prediction.sav'
 pickle.dump(lr,open(filename,'wb'))
+# Make prediction
+if st.button('Predict Sales'):
+    input_data = np.array([[Location, Fuel_Type, Owner_Type, Transmission, Manufacturer]])
+    prediction = model.predict(input_data)[0]
+    st.success(f'Predicted Sales: {prediction:.2f}')
 
 
 
