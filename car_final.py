@@ -213,47 +213,81 @@ import pickle
 filename='car_price_prediction.sav'
 pickle.dump(lr,open(filename,'wb'))
 
-import pickle
+import streamlit as st
 import pandas as pd
 import numpy as np
+import pickle
+import datetime
+
+# Set page configuration
+st.set_page_config(page_title="Car Price Predictor", page_icon="🚗", layout="centered")
 
 # Load model
-model = pickle.load(open('car_price_prediction.sav', 'rb'))
+try:
+    model = pickle.load(open('car_price_prediction.sav', 'rb'))
+except FileNotFoundError:
+    st.error("Error: Model file 'car_price_prediction.sav' not found. Please ensure it is in the app directory.")
+    st.stop()
 
 # Dictionary for label encoding (MUST match training encoding)
 fuel_type_map = {'Petrol': 1, 'Diesel': 0, 'CNG': 2, 'LPG': 3, 'Electric': 4}
 transmission_map = {'Manual': 1, 'Automatic': 0}
 owner_type_map = {'First': 0, 'Second': 1, 'Third': 2, 'Fourth & Above': 3}
-manufacturer_map = {'Maruti': 0, 'Hyundai': 2, 'Honda': 1, 'Toyota': 3, 'Ford': 4, 'Mahindra': 5}  # adjust as per training data
+manufacturer_map = {
+    'Maruti': 0, 'Hyundai': 2, 'Honda': 1, 'Toyota': 3, 'Ford': 4, 
+    'Mahindra': 5, 'Mitsubishi': 6, 'BMW': 7, 'Volkswagen': 8, 
+    'Nissan': 9, 'Tata': 10, 'Audi': 11, 'Volvo': 12, 'Renault': 13, 'Fiat': 14
+}
 
-# Manually enter test values
-print("Enter car details to predict the price:")
-kms = int(input("Kilometers Driven: "))
-mileage = float(input("Mileage (e.g., 18.5): "))
-engine = float(input("Engine capacity in CC (e.g., 1197): "))
-power = float(input("Power in BHP (e.g., 82): "))
-seats = int(input("Number of seats (e.g., 5): "))
-fuel = input("Fuel Type (Petrol/Diesel/CNG/LPG/Electric): ")
-trans = input("Transmission Type (Manual/Automatic): ")
-owner = input("Owner Type (First/Second/Third/Fourth & Above): ")
-manu = input("Manufacturer (Maruti/Hyundai/Honda/...): ")
-year = int(input("Year of Manufacture (e.g., 2018): "))
+# Streamlit app
+st.title("🚗 Car Price Predictor")
+st.markdown("Enter the car details below to predict its price. All fields are required.")
 
-# Compute age
-import datetime
-current_year = datetime.datetime.now().year
-age = current_year - year
+# Create a form for user input
+with st.form(key="car_form"):
+    st.header("Car Details")
 
-# Encode categorical inputs
-fuel_encoded = fuel_type_map.get(fuel, -1)
-trans_encoded = transmission_map.get(trans, -1)
-owner_encoded = owner_type_map.get(owner, -1)
-manu_encoded = manufacturer_map.get(manu, -1)
+    # Numerical inputs
+    kms = st.number_input("Kilometers Driven", min_value=0, value=50000, step=1000,
+                          help="Enter the total kilometers the car has been driven.")
+    mileage = st.number_input("Mileage (Km/L or Km/Kg)", min_value=0.0, value=18.5, step=0.1,
+                             help="Enter the car's fuel efficiency (e.g., 18.5 Km/L).")
+    engine = st.number_input("Engine Capacity (CC)", min_value=0.0, value=1197.0, step=1.0,
+                             help="Enter the engine capacity in cubic centimeters (e.g., 1197).")
+    power = st.number_input("Power (BHP)", min_value=0.0, value=82.0, step=0.1,
+                            help="Enter the car's power in brake horsepower (e.g., 82).")
+    seats = st.number_input("Number of Seats", min_value=1, max_value=20, value=5, step=1,
+                            help="Enter the number of seats (e.g., 5).")
 
-# Ensure no -1s (invalid inputs)
-if -1 in [fuel_encoded, trans_encoded, owner_encoded, manu_encoded]:
-    print("Error: One or more invalid categorical inputs. Please use the specified options.")
-else:
+    # Year input
+    current_year = datetime.datetime.now().year
+    year = st.number_input("Year of Manufacture", min_value=1900, max_value=current_year, 
+                           value=2018, step=1, help=f"Enter the car's manufacturing year (1900-{current_year}).")
+
+    # Categorical inputs
+    fuel = st.selectbox("Fuel Type", options=list(fuel_type_map.keys()),
+                        help="Select the car's fuel type.")
+    trans = st.selectbox("Transmission Type", options=list(transmission_map.keys()),
+                         help="Select the car's transmission type.")
+    owner = st.selectbox("Owner Type", options=list(owner_type_map.keys()),
+                         help="Select the ownership history.")
+    manu = st.selectbox("Manufacturer", options=list(manufacturer_map.keys()),
+                        help="Select the car's manufacturer.")
+
+    # Submit button
+    submit_button = st.form_submit_button(label="Predict Price")
+
+# Process form submission
+if submit_button:
+    # Compute age
+    age = current_year - year
+
+    # Encode categorical inputs
+    fuel_encoded = fuel_type_map[fuel]
+    trans_encoded = transmission_map[trans]
+    owner_encoded = owner_type_map[owner]
+    manu_encoded = manufacturer_map[manu]
+
     # Create input DataFrame
     user_input = pd.DataFrame([{
         'Kilometers_Driven': kms,
@@ -269,9 +303,21 @@ else:
     }])
 
     # Ensure columns match trained model
-    user_input = user_input[model.feature_names_in_]
+    try:
+        user_input = user_input[model.feature_names_in_]
+    except KeyError as e:
+        st.error(f"Error: Model expects different features. Issue: {str(e)}")
+        st.stop()
 
     # Predict
-    predicted_price = model.predict(user_input)[0]
-    predicted_price=predicted_price*10000
-    print(f"\n✅ Predicted Car Price: ₹{predicted_price:,.2f}")
+    try:
+        predicted_price = model.predict(user_input)[0]
+        predicted_price = predicted_price * 10000  # Assuming model outputs in lakhs
+        st.success(f"✅ Predicted Car Price: ₹{predicted_price:,.2f}")
+    except Exception as e:
+        st.error(f"Error during prediction: {str(e)}")
+
+# Add some footer info
+st.markdown("---")
+st.markdown("**Note**: The predicted price is in Indian Rupees (₹), assuming the model outputs in lakhs. Ensure all inputs are accurate for reliable predictions.")
+st.markdown("Built with ❤️ using Streamlit | Model trained on car dataset")
