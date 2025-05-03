@@ -14,9 +14,9 @@ import matplotlib.pyplot as plt
 
 car=pd.read_csv('dataset.csv')
 
-car
 
-car.info()
+
+
 
 car.isnull().sum()
 
@@ -56,8 +56,7 @@ name_counts
 # Split the 'Name' column into multiple columns
 car[['Manufacturer', 'Model']] = car['Name'].str.split(' ',n=1, expand=True)
 
-# Display the updated DataFrame
-car
+
 
 car.drop(['Name'],axis=1,inplace=True)
 
@@ -80,9 +79,6 @@ car['Mileage'] = car['Mileage'].apply(clean_column)
 car['Power'] = car['Power'].apply(clean_column)
 car['Engine'] = car['Engine'].apply(clean_column)
 
-car
-
-car.info()
 
 # prompt: rename column title Mileage to Mileage(Kmpl/Kmkg), Power to Power(CC), Engine to Engine(bhp) and give column name
 
@@ -95,7 +91,7 @@ car.columns
 car.drop(['Model'],axis=1,inplace=True)
 car.drop(['Unnamed: 0'],axis=1,inplace=True)
 
-car.columns
+
 
 sns.pairplot(car)
 
@@ -152,10 +148,7 @@ categorical_cols = ['Fuel_Type', 'Transmission', 'Owner_Type', 'Manufacturer']
 for col in categorical_cols:
     car[col] = le.fit_transform(car[col])
 
-# Display the updated DataFrame
-car
 
-car
 
 
 
