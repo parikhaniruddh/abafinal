@@ -12,7 +12,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-car=pd.read_csv('/content/dataset.csv')
+car=pd.read_csv('dataset.csv')
 
 car
 
